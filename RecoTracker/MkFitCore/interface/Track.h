@@ -592,6 +592,17 @@ namespace mkfit {
   };
 
   typedef std::vector<Track> TrackVec;
+
+  // Per-seed quality from the seeder, indexed by seed label: the seeder labels its
+  // seeds by quad index, and a found track carries its seed's label. The defaults
+  // mean "unknown", and a seed with them is never flagged; see
+  // StdSeq::remove_flagged_seed_tracks().
+  struct SeedQuality {
+    float clean_score = -1;  // the seeder's cleaning score
+    float fake_score = -1;   // the seeder's fake score
+    int n_amb = 0;           // quads the seeder dropped for sharing >= 3 hits with this one
+  };
+
   typedef std::vector<TrackVec> TrackVecVec;
 
   inline bool sortByHitsChi2(const Track& cand1, const Track& cand2) {

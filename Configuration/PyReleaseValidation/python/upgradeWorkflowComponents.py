@@ -2040,6 +2040,13 @@ upgradeWFs['HLTTrackingOnly75e33'].step2['-s'] = upgradeWFs['HLTTrackingOnly75e3
     'VALIDATION:@hltValidation', 'VALIDATION::hltMultiTrackValidation+hltMultiPVValidation'
 )
 
+# Tracking-only menu with the mkFit seeder's seeds as the initialStep (LST) pixel seeds (phase2MkSeeder)
+upgradeWFs['HLTTrackingOnly75e33MkSeeder'] = deepcopy(upgradeWFs['HLTTrackingOnly75e33'])
+upgradeWFs['HLTTrackingOnly75e33MkSeeder'].suffix = '_HLT75e33TrackingOnlyMkSeeder'
+upgradeWFs['HLTTrackingOnly75e33MkSeeder'].offset = 0.7505
+upgradeWFs['HLTTrackingOnly75e33MkSeeder'].step2['--procModifiers'] = 'phase2MkSeeder'
+upgradeWFs['HLTTrackingOnly75e33MkSeeder'].step3['--procModifiers'] = 'phase2MkSeeder'
+
 class UpgradeWorkflow_HLT75e33TrackingNtuple(UpgradeWorkflow):
     def setup_(self, step, stepName, stepDict, k, properties):
         # skip RECO, ALCA and HLT

@@ -9,3 +9,6 @@ hltInputLST = cms.EDProducer('LSTInputProducer@alpaka',
         backend = cms.untracked.string('')
     )
 )
+
+from Configuration.ProcessModifiers.phase2MkSeeder_cff import phase2MkSeeder
+phase2MkSeeder.toModify(hltInputLST, pixelSeeds = ['hltMkFitSeederSeeds'])

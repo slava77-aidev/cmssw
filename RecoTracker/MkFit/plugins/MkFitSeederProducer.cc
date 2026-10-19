@@ -157,9 +157,12 @@ void MkFitSeederProducer::produce(edm::StreamID iID, edm::Event& iEvent, const e
   mkfit::seeder_make_seeds(seederConfig.fit, cache.quads, src, trackerInfo, algo_, seeds, &qualityByQuad, &fitCounters);
   int nMerged = 0;
   const int nDup = mkfit::seeder_clean_duplicates(seederConfig, src, trackerInfo, seeds, qualityByQuad, &nMerged);
+  int nExtHits = 0;
+  const int nExt = mkfit::seeder_extend_seeds(seederConfig, src, trackerInfo, seeds, &nExtHits);
   LogDebug("MkFitSeederProducer") << counters.quads << " quads found, " << cache.quads.size() << " kept, "
                                   << seeds.size() << " seeds; " << fitCounters.n_bad_helix << " without a helix, "
-                                  << fitCounters.n_fail << " failed fits, " << nDup << " duplicates removed, " << nMerged << " seeds merged";
+                                  << fitCounters.n_fail << " failed fits, " << nDup << " duplicates removed, " << nMerged << " seeds merged, " << nExt
+                                  << " seeds extended by " << nExtHits << " hits";
 
   if (seeds.size() > maxNSeeds_) {
     edm::LogError("TooManySeeds") << "Exceeded maximum number of seeds! maxNSeeds=" << maxNSeeds_

@@ -109,6 +109,19 @@ namespace mkfit {
     // dup_ns_merge: the seeds removed in that comparison give their hits to the kept seed too (dup_merge); 0: they don't
     int dup_ns_merge = 1;
 
+    // The outward extension of barrel seeds (seeder_extend_seeds(), MkSeeder.h), after the duplicate cleaning: a
+    // seed whose hits are all in the pixel barrel or OT1-P (layers 0-4), with |eta| < ext_eta, takes the best hit
+    // on each of OT1-P, OT2-P and OT3-P beyond its last hit, for the helix through its last three hits, when the
+    // hit's score (dphi / sphi)^2 + (dz / sz)^2 (the sigmas of the OT1-P check) is below ext_sig^2, and is refitted.
+    // ext_ot 0: off. Added 2026-10-18: a file without these keys gets these defaults.
+    int ext_ot = 0;
+    float ext_sig = 3;
+    float ext_eta = 99;
+    // ext_nlay: how many of OT1-P, OT2-P, OT3-P, from OT1-P outwards, the extension looks at
+    int ext_nlay = 3;
+    // ext_any: also seeds with hits in the pixel discs (the transition region), not only in the pixel barrel and OT1-P
+    int ext_any = 0;
+
     // The seed fit (seeder_make_seeds(), MkSeeder.h): the state and covariance of a seed from its quad.
     // mode 1: the helix through the first, a middle and the last hit, at the first hit, with the prior
     //   prior_sigma (times prior_scale; sigma(1/pT) relative to the helix's own 1/pT), then the Kalman update

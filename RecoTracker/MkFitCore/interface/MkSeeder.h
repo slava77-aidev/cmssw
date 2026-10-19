@@ -78,6 +78,14 @@ namespace mkfit {
                               const std::vector<SeedQuality> &quality,
                               int *n_merged = nullptr);
 
+  // The outward extension of barrel seeds into OT1-P, OT2-P and OT3-P (SeederConfig::ext_ot): adds the hits in
+  // place and refits the extended seeds. Returns the number of seeds extended; n_hits_added, if given, the hits.
+  int seeder_extend_seeds(const SeederConfig &cfg,
+                          const SeedHitSource &src,
+                          const TrackerInfo &ti,
+                          TrackVec &seeds,
+                          int *n_hits_added = nullptr);
+
   // The fit of seeds[which[i]] with the hits hits[i] (in fit order), as seeder_make_seeds() fits a quad. A seed
   // whose fit fails is left as it was.
   void seeder_refit_seeds(const SeederConfig::Fit &fit,

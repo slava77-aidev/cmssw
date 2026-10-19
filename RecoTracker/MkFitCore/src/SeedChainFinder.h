@@ -382,7 +382,14 @@ namespace mkfit {
     // the floor of the phi term: a + b / pT from the q97 per pT bin below 10 GeV crosses zero at 7.3 GeV,
     // and the q97 of true quads above 3 GeV is 1.31 mrad (events 0-39)
     float ot2_phimin = 1.31e-3f;
-    long n_fk_shape = 0, n_fk_ot2 = 0, n_ot2_tested = 0;
+    // fk_ot1 > 0: a quad of four pixel hits with |cot theta| < fk_ot1_cot (its r-z line) needs a hit on OT1-P
+    //   (layer 4) for the helix through b, c, d, with next_hit()'s score below fk_ot1^2. Quads whose helix does
+    //   not reach OT1-P, or reaches it outside |z| < zmax - 2 cm, pass. Only quads whose fake score (c.sc + the d
+    //   part) is >= fk_ot1_gate are tested.
+    // fk_ot2_sig > 0: in the OT2-P check, the best hit also needs next_hit()'s score below fk_ot2_sig^2, for quads
+    //   whose fake score is >= fk_ot2_gate.
+    float fk_ot1 = 0, fk_ot1_cot = 1e30f, fk_ot1_gate = 0, fk_ot2_sig = 0, fk_ot2_gate = 0;
+    long n_fk_shape = 0, n_fk_ot2 = 0, n_ot2_tested = 0, n_fk_ot1 = 0, n_ot1_tested = 0;
     long n_gap_tested = 0, n_gap_veto = 0;  // gap-start lanes tested on the gap map in flush_start(), and dropped
     long n_gap_pre = 0;                     // gap-start pairs dropped by the gap map in the doublet loop
     // The gap map in the doublet loop: per start, the one skipped layer with a map (else -1), and per such layer
@@ -511,9 +518,9 @@ namespace mkfit {
                         float &dz,
                         float &score);
 
-    // the layers of the chain positions, and OT2-P, for this event
+    // the layers of the chain positions, OT1-P and OT2-P, for this event
     std::vector<const SeedLayerOfHits *> lay_;
-    const SeedLayerOfHits *lay_ot2_ = nullptr;
+    const SeedLayerOfHits *lay_ot1_ = nullptr, *lay_ot2_ = nullptr;
     void prepare(const std::map<int, const SeedLayerOfHits *> &L);
     // the shape table of position p, or null
     const ShapeTab *shape_of(int p) const {

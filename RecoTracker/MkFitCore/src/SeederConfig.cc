@@ -59,6 +59,11 @@ namespace mkfit {
                                      fk_ot2,
                                      ot2_win,
                                      ot2_phimin,
+                                     fk_ot1,
+                                     fk_ot1_eta,
+                                     fk_ot1_gate,
+                                     fk_ot2_sig,
+                                     fk_ot2_gate,
                                      dedup,
                                      fit)
 
@@ -66,8 +71,14 @@ namespace mkfit {
     std::ifstream ifs(json_file);
     if (!ifs)
       throw std::runtime_error("SeederConfig::load: cannot open '" + json_file + "'");
-    // every member must be present: a file that misses one is a file written for another version
-    const nlohmann::ordered_json j = nlohmann::ordered_json::parse(ifs);
+    // every member must be present: a file that misses one is a file written for another version. The members
+    // added after the working point 2026-10-06-transwin are the exception: a file without them gets the default,
+    // which is the behaviour before them.
+    nlohmann::ordered_json j = nlohmann::ordered_json::parse(ifs);
+    const nlohmann::ordered_json defaults = SeederConfig();
+    for (const char *key : {"fk_ot1", "fk_ot1_eta", "fk_ot1_gate", "fk_ot2_sig", "fk_ot2_gate"})
+      if (!j.contains(key))
+        j[key] = defaults[key];
     *this = j.get<SeederConfig>();
   }
 

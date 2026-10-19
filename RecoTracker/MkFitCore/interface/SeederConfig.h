@@ -68,6 +68,19 @@ namespace mkfit {
     float fk_ot2 = 0;
     std::array<float, 4> ot2_win = {-8.1e-4f, 5.92e-3f, 0.3084f, 0.0909f};
     float ot2_phimin = 1.31e-3f;
+    // fk_ot1 > 0: a quad of four pixel hits whose a-d line has |eta| < fk_ot1_eta needs a hit on OT1-P (layer 4)
+    // for the helix through b, c, d, with score (dphi / sphi)^2 + (dz / sz)^2 < fk_ot1^2 (the sigmas of
+    // SeedChainFinder::next_hit()). Quads whose helix does not reach OT1-P inside |z| < zmax - 2 cm pass. 0: off.
+    // fk_ot1_gate: the OT1-P check only for quads whose fake score (the residual score of fk_score, computed when
+    // fk_score > 0 or fk_shape) is >= fk_ot1_gate; 0: every quad.
+    // fk_ot2_sig > 0: in the OT2-P check (fk_ot2 > 0), the best hit also needs next_hit()'s score below
+    // fk_ot2_sig^2, for quads whose fake score is >= fk_ot2_gate. 0: off.
+    // Added after the working point 2026-10-06-transwin: a file without these keys gets these defaults.
+    float fk_ot1 = 0;
+    float fk_ot1_eta = 99;
+    float fk_ot1_gate = 0;
+    float fk_ot2_sig = 0;
+    float fk_ot2_gate = 0;
 
     // the cleaning: drop a quad sharing >= dedup hits with a better kept one; 0: off
     int dedup = 0;

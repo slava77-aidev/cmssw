@@ -57,6 +57,8 @@ namespace mkfit {
       have.insert(l), have.insert(l + 22);
     for (int l : have)
       m_hits.add_layer(l, ti[l], ti[l].is_barrel() ? 2.0 : 1.0);
+    if (cfg.fk_ot1 > 0)
+      m_hits.add_layer(4, ti[4], 2.0);
     if (cfg.fk_ot2 > 0)
       for (int l : {4, 6})
         m_hits.add_layer(l, ti[l], 2.0);
@@ -130,6 +132,8 @@ namespace mkfit {
       B.fk_score_fwd = cfg.fk_score_fwd, B.fk_cot_fwd = std::sinh(cfg.fk_eta_fwd);
       B.ot2_aphi = cfg.ot2_win[0], B.ot2_bphi = cfg.ot2_win[1], B.ot2_aq = cfg.ot2_win[2], B.ot2_bq = cfg.ot2_win[3];
       B.ot2_phimin = cfg.ot2_phimin;
+      B.fk_ot1 = cfg.fk_ot1, B.fk_ot1_cot = cfg.fk_ot1_eta >= 10 ? 1e30f : std::sinh(cfg.fk_ot1_eta);
+      B.fk_ot1_gate = cfg.fk_ot1_gate, B.fk_ot2_sig = cfg.fk_ot2_sig, B.fk_ot2_gate = cfg.fk_ot2_gate;
       for (const SeederConfig::ShapeWin &w : cfg.shape_win) {
         if (w.layer < 0 || w.layer > 3 || w.bin_width <= 0 || w.lo.empty() || w.lo.size() != w.hi.size())
           throw std::invalid_argument("MkSeeder::configure: bad shape_win for layer " + std::to_string(w.layer));

@@ -203,4 +203,236 @@ namespace mkfit {
       *counters = cnt;
   }
 
+  // The fit of seeds with any number of hits (seeder_refit_seeds()). The same fit as seeder_make_seeds() above, written
+  // for n hits; kept apart so that the quads' fit stays bit-identical (the build is -Ofast).
+  namespace {
+    // The circle through three points in the transverse plane and the line in (arc length, z) through
+    // all n hits. k: signed curvature, > 0 counter-clockwise from a to d.
+    struct SeedHelixN {
+      float cx = 0, cy = 0, R = 0;  // centre and radius; R = 0 for a straight line
+      int turn = 0;                 // +1 counter-clockwise, -1 clockwise, 0 straight
+      float cot = 0;
+
+      bool make(const Hit *const *H, int n) {
+        const float ax = H[0]->x(), ay = H[0]->y(), dx = H[n - 1]->x(), dy = H[n - 1]->y();
+        // the middle point: whichever of the inner hits lies nearest the middle of a-d in r (of equals, the later)
+        const float rm = 0.5f * (H[0]->r() + H[n - 1]->r());
+        const Hit *Mp = H[1];
+        for (int k = 2; k < n - 1; ++k)
+          if (!(std::abs(Mp->r() - rm) < std::abs(H[k]->r() - rm)))
+            Mp = H[k];
+        const Hit &M = *Mp;
+        const float bx = M.x() - ax, by = M.y() - ay, ex = dx - ax, ey = dy - ay;
+        const float dd = 2.f * (bx * ey - by * ex);
+        const float b2 = bx * bx + by * by, e2 = ex * ex + ey * ey;
+        if (std::abs(dd) < 1e-9f * e2)
+          return false;
+        const float ux = (ey * b2 - by * e2) / dd, uy = (bx * e2 - ex * b2) / dd;
+        cx = ax + ux, cy = ay + uy, R = std::hypot(ux, uy);
+        turn = dd > 0 ? 1 : -1;
+        // z = z0 + cot * s, least squares over the n hits, s the arc length from hit 0
+        float S = 0, Z = 0, SS = 0, SZ = 0;
+        for (int k = 0; k < n; ++k) {
+          const float chord = std::hypot(H[k]->x() - ax, H[k]->y() - ay);
+          const float s = 2.f * R * std::asin(std::min(1.f, chord / (2.f * R)));
+          S += s, Z += H[k]->z(), SS += s * s, SZ += s * H[k]->z();
+        }
+        const float fn = n;
+        const float den = fn * SS - S * S;
+        if (den <= 0)
+          return false;
+        cot = (fn * SZ - S * Z) / den;
+        return std::isfinite(cot) && std::isfinite(R);
+      }
+
+      // the state at hit h, moving away from hit 0. B along +z turns a positive charge clockwise.
+      void state(const Hit &h, TrackState &ts) const {
+        const float rx = h.x() - cx, ry = h.y() - cy;
+        const float tx = turn > 0 ? -ry : ry, ty = turn > 0 ? rx : -rx;
+        ts.charge = turn > 0 ? -1 : 1;
+        const float pt = Const::sol_over_100 * Config::Bfield * R;
+        ts.parameters = SVector6(h.x(), h.y(), h.z(), 1.f / pt, std::atan2(ty, tx), Const::PIOver2 - std::atan(cot));
+      }
+    };
+
+    // A seed's hits in fit order (along the trajectory), at most kMaxSeedHits.
+    constexpr int kMaxSeedHits = 16;
+    struct SeedHits {
+      int n = 0;
+      int lyr[kMaxSeedHits];
+      int idx[kMaxSeedHits];
+    };
+
+    // The fit of up to NN seeds (SeederConfig::Fit): ts, ok and chi2 per lane i < N. Lanes whose seed has fewer hits
+    // than the longest one keep their state once their hits are used.
+    void fit_block(const SeederConfig::Fit &fit,
+                   const SeedHits *L,
+                   int N,
+                   const SeedHitSource &src,
+                   const TrackerInfo &ti,
+                   const PropagationFlags &pf,
+                   TrackState *ts,
+                   bool *ok,
+                   float *chi2,
+                   SeedFitCounters &cnt) {
+      auto hit_of = [&](const SeedHits &l, int k) -> const Hit & { return (*src[l.lyr[k]].hits)[l.idx[k]]; };
+      int nmax = 0;
+      for (int i = 0; i < N; ++i) {
+        const SeedHits &l = L[i];
+        nmax = std::max(nmax, l.n);
+        const Hit *H[kMaxSeedHits];
+        for (int k = 0; k < l.n; ++k)
+          H[k] = &hit_of(l, k);
+        SeedHelixN hx;
+        ok[i] = l.n >= 4 && hx.make(H, l.n);
+        chi2[i] = 0;
+        if (!ok[i]) {
+          ++cnt.n_bad_helix;
+          continue;
+        }
+        if (fit.mode == 0) {
+          hx.state(*H[l.n - 1], ts[i]);
+          diag_errors(ts[i].errors, fit.fake_sigma.data(), 1.f);
+        } else {
+          hx.state(*H[0], ts[i]);
+          diag_errors(ts[i].errors, fit.prior_sigma.data(), fit.prior_scale);
+          ts[i].errors(3, 3) *= ts[i].parameters[3] * ts[i].parameters[3];
+          if (fit.pos_from_hit0) {
+            // the position is hit 0's: its own covariance, and no update with it below
+            const SMatrixSym33 &he = H[0]->error();
+            for (int a = 0; a < 3; ++a)
+              for (int b = 0; b <= a; ++b)
+                ts[i].errors(a, b) = he(a, b);
+          }
+        }
+      }
+      if (fit.mode != 1)
+        return;
+      MPlexLS err_in, err_out;
+      MPlexLV par_in, par_out;
+      MPlexQI chg, chg_prev, fail;
+      MPlexQF chi2_k;
+      MPlexHS msErr;
+      MPlexHV msPar, plNrm, plDir, plPnt;
+      // lanes beyond N and lanes without a helix repeat the first good lane, so that every lane computes on sane
+      // numbers
+      int i_good = 0;
+      while (i_good < N && !ok[i_good])
+        ++i_good;
+      if (i_good == N)
+        return;
+      int lane_of[NN];
+      for (int i = 0; i < NN; ++i) {
+        const int j = (i < N && ok[i]) ? i : i_good;
+        lane_of[i] = j;
+        err_in.copyIn(i, ts[j].errors.Array());
+        par_in.copyIn(i, ts[j].parameters.Array());
+        chg(i, 0, 0) = ts[j].charge;
+      }
+      int failed[NN] = {0};
+      for (int k = fit.pos_from_hit0 ? 1 : 0; k < nmax; ++k) {
+        bool active[NN];
+        for (int i = 0; i < NN; ++i) {
+          const int j = lane_of[i];
+          const SeedHits &l = L[j];
+          active[i] = i < N && ok[i] && k < l.n;
+          const int kk = std::min(k, l.n - 1);
+          const LayerInfo &li = ti[l.lyr[kk]];
+          const Hit &h = hit_of(l, kk);
+          const ModuleInfo &mi = li.module_info(h.detIDinLayer());
+          msErr.copyIn(i, h.errArray());
+          msPar.copyIn(i, h.posArray());
+          plNrm.copyIn(i, mi.zdir.Array());
+          plDir.copyIn(i, mi.xdir.Array());
+          plPnt.copyIn(i, mi.pos.Array());
+        }
+        fail.setVal(0);
+        chg_prev = chg;
+        kalmanPropagateAndUpdateAndChi2Plane(
+            err_in, par_in, chg, msErr, msPar, plNrm, plDir, plPnt, err_out, par_out, fail, chi2_k, NN, pf, true);
+        for (int i = 0; i < N; ++i) {
+          if (!ok[i] || active[i])
+            continue;
+          // a seed past its last hit keeps its state
+          float e[21], p[6];
+          err_in.copyOut(i, e);
+          par_in.copyOut(i, p);
+          err_out.copyIn(i, e);
+          par_out.copyIn(i, p);
+          chg(i, 0, 0) = chg_prev(i, 0, 0);
+        }
+        for (int i = 0; i < N; ++i) {
+          if (!active[i])
+            continue;
+          int why = fail(i, 0, 0) != 0 ? 1 : 0;
+          for (int d = 0; d < 6; ++d) {
+            if (!isFinite(par_out(i, d, 0)))
+              why |= 2;
+            if (!isFinite(err_out(i, d, d)))
+              why |= 4;
+            else if (d >= 3 ? !(err_out(i, d, d) > 0.f) : err_out(i, d, d) < -1e-6f)
+              why |= 8;
+          }
+          // the state lies on the module plane, so the position covariance has a zero direction along
+          // its normal; float rounding leaves that diagonal at about -1e-9 cm^2, which is not a failure
+          for (int d = 0; d < 3; ++d)
+            cnt.n_neg_pos += k == L[i].n - 1 && err_out(i, d, d) <= 0.f && err_out(i, d, d) >= -1e-6f;
+          failed[i] |= why != 0;
+          chi2[i] += chi2_k(i, 0, 0);
+        }
+        err_in = err_out;
+        par_in = par_out;
+      }
+      for (int i = 0; i < N; ++i) {
+        if (!ok[i])
+          continue;
+        if (failed[i]) {
+          ok[i] = false;
+          ++cnt.n_fail;
+          continue;
+        }
+        err_in.copyOut(i, ts[i].errors.Array());
+        par_in.copyOut(i, ts[i].parameters.Array());
+        ts[i].charge = chg(i, 0, 0);
+      }
+    }
+  }  // namespace
+
+  void seeder_refit_seeds(const SeederConfig::Fit &fit,
+                          const SeedHitSource &src,
+                          const TrackerInfo &ti,
+                          TrackVec &seeds,
+                          const std::vector<int> &which,
+                          const std::vector<std::vector<HitOnTrack>> &hits,
+                          SeedFitCounters *counters) {
+    SeedFitCounters cnt;
+    const PropagationFlags &pf = ti.prop_config().backward_fit_pflags;
+    for (int b0 = 0; b0 < (int)which.size(); b0 += NN) {
+      const int N = std::min(NN, (int)which.size() - b0);
+      SeedHits L[NN];
+      for (int i = 0; i < N; ++i) {
+        const std::vector<HitOnTrack> &h = hits[b0 + i];
+        L[i].n = 0;
+        for (size_t k = 0; k < h.size() && L[i].n < kMaxSeedHits; ++k)
+          L[i].lyr[L[i].n] = h[k].layer, L[i].idx[L[i].n] = h[k].index, ++L[i].n;
+      }
+      TrackState ts[NN];
+      bool ok[NN];
+      float chi2[NN];
+      fit_block(fit, L, N, src, ti, pf, ts, ok, chi2, cnt);
+      for (int i = 0; i < N; ++i) {
+        if (!ok[i])
+          continue;
+        Track &t = seeds[which[b0 + i]];
+        Track seed(ts[i], chi2[i], t.label(), 0, nullptr);
+        for (int k = 0; k < L[i].n; ++k)
+          seed.addHitIdx(L[i].idx[k], L[i].lyr[k], 0.f);
+        seed.setAlgorithm(t.algorithm());
+        t = seed;
+      }
+    }
+    if (counters)
+      *counters = cnt;
+  }
+
 }  // namespace mkfit

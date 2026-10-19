@@ -61,6 +61,33 @@ namespace mkfit {
                          std::vector<SeedQuality> *quality = nullptr,
                          SeedFitCounters *counters = nullptr);
 
+  // The duplicate cleaning of the seeds of seeder_make_seeds() (SeederConfig::dup_sig): removes from seeds, in
+  // place and keeping the order, each seed whose helix is compatible with a better kept seed sharing >= dup_shared
+  // hits with it. quality: per quad, i.e. by the seeds' labels. Returns the number of seeds removed; none when
+  // dup_sig <= 0.
+  // dup_noshare_eta: forward seeds are also compared with kept seeds that share no hit with them.
+  // dup_merge: the hits of the removed seeds go into the kept seed they were compatible with (dup_merge 1: not a
+  // second hit on a module it has a hit on; 2: not a second hit on a layer; at most Track::Status::kMaxSeedHits
+  // hits), ordered by distance
+  // from the origin, and the kept seed is
+  // refitted with them (seeder_refit_seeds); a failed refit leaves it as it was.
+  int seeder_clean_duplicates(const SeederConfig &cfg,
+                              const SeedHitSource &src,
+                              const TrackerInfo &ti,
+                              TrackVec &seeds,
+                              const std::vector<SeedQuality> &quality,
+                              int *n_merged = nullptr);
+
+  // The fit of seeds[which[i]] with the hits hits[i] (in fit order), as seeder_make_seeds() fits a quad. A seed
+  // whose fit fails is left as it was.
+  void seeder_refit_seeds(const SeederConfig::Fit &fit,
+                          const SeedHitSource &src,
+                          const TrackerInfo &ti,
+                          TrackVec &seeds,
+                          const std::vector<int> &which,
+                          const std::vector<std::vector<HitOnTrack>> &hits,
+                          SeedFitCounters *counters = nullptr);
+
   class MkSeeder {
   public:
     MkSeeder();

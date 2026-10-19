@@ -85,6 +85,30 @@ namespace mkfit {
     // the cleaning: drop a quad sharing >= dedup hits with a better kept one; 0: off
     int dedup = 0;
 
+    // The duplicate cleaning of the fitted seeds (seeder_clean_duplicates(), MkSeeder.h), after the fit. A seed
+    // is dropped when a better kept seed shares >= dup_shared hits with it and its helix is compatible: q/pT and
+    // cot(theta) within dup_sig sigma (the two seeds' fit errors added), phi and z at the point
+    // of closest approach to the beam line within dup_dphi (rad) and dup_dz (cm). Better: fewer outer-tracker
+    // hits, then the lower cleaning score. dup_sig 0: off.
+    // Added 2026-10-17: a file without these keys gets these defaults.
+    float dup_sig = 0;
+    int dup_shared = 1;
+    float dup_dphi = 0.05f;
+    float dup_dz = 1.0f;
+    // dup_merge: the kept seed takes the hits of the seeds removed for it and is refitted (seeder_clean_duplicates()):
+    // 1 hits on modules it has no hit on, 2 hits on layers it has no hit on; 0: off
+    int dup_merge = 0;
+    // dup_noshare_eta: seeds with |eta| >= dup_noshare_eta are also compared with the kept seeds that share no hit
+    // with them, within |delta eta| < dup_deta and the windows above; 99: off
+    float dup_noshare_eta = 99;
+    float dup_deta = 0.02f;
+    // the windows of that comparison, when > 0 (else dup_sig, dup_dphi, dup_dz)
+    float dup_ns_sig = 0;
+    float dup_ns_dphi = 0;
+    float dup_ns_dz = 0;
+    // dup_ns_merge: the seeds removed in that comparison give their hits to the kept seed too (dup_merge); 0: they don't
+    int dup_ns_merge = 1;
+
     // The seed fit (seeder_make_seeds(), MkSeeder.h): the state and covariance of a seed from its quad.
     // mode 1: the helix through the first, a middle and the last hit, at the first hit, with the prior
     //   prior_sigma (times prior_scale; sigma(1/pT) relative to the helix's own 1/pT), then the Kalman update

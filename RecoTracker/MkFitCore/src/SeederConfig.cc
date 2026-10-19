@@ -65,6 +65,17 @@ namespace mkfit {
                                      fk_ot2_sig,
                                      fk_ot2_gate,
                                      dedup,
+                                     dup_sig,
+                                     dup_shared,
+                                     dup_dphi,
+                                     dup_dz,
+                                     dup_merge,
+                                     dup_noshare_eta,
+                                     dup_deta,
+                                     dup_ns_sig,
+                                     dup_ns_dphi,
+                                     dup_ns_dz,
+                                     dup_ns_merge,
                                      fit)
 
   void SeederConfig::load(const std::string &json_file) {
@@ -76,7 +87,7 @@ namespace mkfit {
     // which is the behaviour before them.
     nlohmann::ordered_json j = nlohmann::ordered_json::parse(ifs);
     const nlohmann::ordered_json defaults = SeederConfig();
-    for (const char *key : {"fk_ot1", "fk_ot1_eta", "fk_ot1_gate", "fk_ot2_sig", "fk_ot2_gate"})
+    for (const char *key : {"fk_ot1", "fk_ot1_eta", "fk_ot1_gate", "fk_ot2_sig", "fk_ot2_gate", "dup_sig", "dup_shared", "dup_dphi", "dup_dz", "dup_merge", "dup_noshare_eta", "dup_deta", "dup_ns_sig", "dup_ns_dphi", "dup_ns_dz", "dup_ns_merge"})
       if (!j.contains(key))
         j[key] = defaults[key];
     *this = j.get<SeederConfig>();

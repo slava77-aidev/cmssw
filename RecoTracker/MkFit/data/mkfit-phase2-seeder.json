@@ -1438,5 +1438,25 @@
    0.0015,
    0.0008
   ]
- }
+ },
+ "fk_ot1": 3,
+ "fk_ot1_eta": 2.4,
+ "fk_ot1_gate": 0.3,
+ "fk_ot2_sig": 2,
+ "fk_ot2_gate": 0.3,
+ "dup_sig": 5,
+ "dup_shared": 1,
+ "dup_dphi": 0.05,
+ "dup_dz": 1.0,
+ "dup_merge": 2,
+ "dup_noshare_eta": 2.4,
+ "dup_deta": 0.01,
+ "dup_ns_sig": 3,
+ "dup_ns_dphi": 0.02,
+ "dup_ns_dz": 0.5,
+ "ext_ot": 1,
+ "ext_sig": 3,
+ "ext_eta": 99,
+ "ext_nlay": 2,
+ "ext_any": 1
 }

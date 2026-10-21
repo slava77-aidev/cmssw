@@ -11,4 +11,4 @@ hltInputLST = cms.EDProducer('LSTInputProducer@alpaka',
 )
 
 from Configuration.ProcessModifiers.phase2MkSeeder_cff import phase2MkSeeder
-phase2MkSeeder.toModify(hltInputLST, pixelSeeds = ['hltMkFitSeederSeeds'])
+phase2MkSeeder.toModify(hltInputLST, pixelSeeds = ['hltMkFitSeederSeedsClassified'])

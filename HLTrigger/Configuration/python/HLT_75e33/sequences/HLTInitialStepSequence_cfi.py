@@ -121,10 +121,12 @@ trackingMkFitFit.toReplaceWith(HLTInitialStepSequence, _HLTInitialStepSequenceMk
 
 from ..modules.hltMkFitSeederSeedsMkFit_cfi import *
 from ..modules.hltMkFitSeederSeeds_cfi import *
+from ..modules.hltMkFitSeederSeedsClassified_cfi import *
 _HLTInitialStepSequenceMkSeeder = cms.Sequence(
     HLTMkFitInputSequence
     +hltMkFitSeederSeedsMkFit
     +hltMkFitSeederSeeds
+    +hltMkFitSeederSeedsClassified
     +hltInputLST
     +hltLST
     +hltInitialStepTrajectorySeedsLST

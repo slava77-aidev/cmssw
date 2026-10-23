@@ -28,7 +28,8 @@ namespace mkfit {
   SEEDCONF_DEFINE_TYPE_NON_INTRUSIVE(SeederConfig::EtaWin, lo, hi, aphi, bphi, aq, bq)
   SEEDCONF_DEFINE_TYPE_NON_INTRUSIVE(SeederConfig::Pattern, layers, win, bwin, sref, eta_win)
   SEEDCONF_DEFINE_TYPE_NON_INTRUSIVE(SeederConfig::ShapeWin, layer, bin_width, lo, hi)
-  SEEDCONF_DEFINE_TYPE_NON_INTRUSIVE(SeederConfig::Fit, mode, prior_sigma, prior_scale, pos_from_hit0, fake_sigma)
+  SEEDCONF_DEFINE_TYPE_NON_INTRUSIVE(
+      SeederConfig::Fit, mode, prior_sigma, prior_scale, pos_from_hit0, fake_sigma, beamline_state, bl_err_rescale)
   SEEDCONF_DEFINE_TYPE_NON_INTRUSIVE(SeederConfig,
                                      pt_min,
                                      d0_max,
@@ -95,6 +96,10 @@ namespace mkfit {
     for (const char *key : {"fk_ot1", "fk_ot1_eta", "fk_ot1_gate", "fk_ot2_sig", "fk_ot2_gate", "dup_sig", "dup_shared", "dup_dphi", "dup_dz", "dup_merge", "dup_noshare_eta", "dup_deta", "dup_ns_sig", "dup_ns_dphi", "dup_ns_dz", "dup_ns_merge", "ext_ot", "ext_sig", "ext_eta", "ext_nlay", "ext_any"})
       if (!j.contains(key))
         j[key] = defaults[key];
+    if (j.contains("fit"))
+      for (const char *key : {"beamline_state", "bl_err_rescale"})
+        if (!j["fit"].contains(key))
+          j["fit"][key] = defaults["fit"][key];
     *this = j.get<SeederConfig>();
   }
 

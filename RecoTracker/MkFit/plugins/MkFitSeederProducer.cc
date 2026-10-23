@@ -159,10 +159,14 @@ void MkFitSeederProducer::produce(edm::StreamID iID, edm::Event& iEvent, const e
   const int nDup = mkfit::seeder_clean_duplicates(seederConfig, src, trackerInfo, seeds, qualityByQuad, &nMerged);
   int nExtHits = 0;
   const int nExt = mkfit::seeder_extend_seeds(seederConfig, src, trackerInfo, seeds, &nExtHits);
+  // a test for the phase-2 HLT, off by default: states that consumers can take to the beam line (SeederConfig::Fit)
+  mkfit::SeedFitCounters blCounters;
+  mkfit::seeder_beamline_states(seederConfig.fit, src, trackerInfo, seeds, &blCounters);
   LogDebug("MkFitSeederProducer") << counters.quads << " quads found, " << cache.quads.size() << " kept, "
                                   << seeds.size() << " seeds; " << fitCounters.n_bad_helix << " without a helix, "
                                   << fitCounters.n_fail << " failed fits, " << nDup << " duplicates removed, " << nMerged << " seeds merged, " << nExt
-                                  << " seeds extended by " << nExtHits << " hits";
+                                  << " seeds extended by " << nExtHits << " hits, " << blCounters.n_fail
+                                  << " failed beam-line states";
 
   if (seeds.size() > maxNSeeds_) {
     edm::LogError("TooManySeeds") << "Exceeded maximum number of seeds! maxNSeeds=" << maxNSeeds_

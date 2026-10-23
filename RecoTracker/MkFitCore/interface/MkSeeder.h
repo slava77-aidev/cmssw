@@ -86,6 +86,16 @@ namespace mkfit {
                           TrackVec &seeds,
                           int *n_hits_added = nullptr);
 
+  // The state of each seed for a consumer that takes it to the beam line (SeederConfig::Fit::beamline_state, a test
+  // for the phase-2 HLT): the inward fit over the seed's hits, from its state at the last hit with the covariance
+  // times fit.bl_err_rescale, and its state at the first hit propagated without material onto the last hit's module
+  // plane. A seed whose fit or propagation fails keeps its state. Does nothing when fit.beamline_state is 0.
+  void seeder_beamline_states(const SeederConfig::Fit &fit,
+                              const SeedHitSource &src,
+                              const TrackerInfo &ti,
+                              TrackVec &seeds,
+                              SeedFitCounters *counters = nullptr);
+
   // The fit of seeds[which[i]] with the hits hits[i] (in fit order), as seeder_make_seeds() fits a quad. A seed
   // whose fit fails is left as it was.
   void seeder_refit_seeds(const SeederConfig::Fit &fit,

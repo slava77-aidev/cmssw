@@ -134,6 +134,16 @@ namespace mkfit {
       float prior_scale = 1.0f;
       int pos_from_hit0 = 0;
       std::array<float, 6> fake_sigma = {0.002f, 0.002f, 0.002f, 0.03f, 0.0015f, 0.0008f};
+      // beamline_state 1 (a test, for the phase-2 HLT): after the last step of the seeder (seeder_beamline_states(),
+      // MkSeeder.h), each seed is fitted inward over its hits, from its state at the last hit with the covariance
+      // times bl_err_rescale, and the state at its first hit is propagated without material onto its last hit's
+      // module plane. The seed keeps its state at the last hit, but taken back to the beam line without material it
+      // gives the fit of all its hits at the first hit. At the HLT, LST's input (LSTInputProducer) and the pixel
+      // tracks for the vertices (TrackFromSeedProducer) read the seed's state at the beam line that way; the state
+      // of the forward fit, optimal at the last hit, is a poor one there. 0: off.
+      // Added 2026-10-23: a file without these keys gets these defaults.
+      int beamline_state = 0;
+      float bl_err_rescale = 100.f;
     };
     Fit fit;
 

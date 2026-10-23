@@ -7,6 +7,7 @@
 #include "RecoTracker/MkFitCore/interface/cms_common_macros.h"
 #include "RecoTracker/MkFitCore/src/KalmanUtilsMPlex.h"
 #include "RecoTracker/MkFitCore/src/Matrix.h"
+#include "RecoTracker/MkFitCore/src/PropagationMPlex.h"
 
 #include <algorithm>
 #include <cmath>
@@ -429,6 +430,129 @@ namespace mkfit {
           seed.addHitIdx(L[i].idx[k], L[i].lyr[k], 0.f);
         seed.setAlgorithm(t.algorithm());
         t = seed;
+      }
+    }
+    if (counters)
+      *counters = cnt;
+  }
+
+  void seeder_beamline_states(const SeederConfig::Fit &fit,
+                              const SeedHitSource &src,
+                              const TrackerInfo &ti,
+                              TrackVec &seeds,
+                              SeedFitCounters *counters) {
+    SeedFitCounters cnt;
+    if (fit.beamline_state == 0 || seeds.empty()) {
+      if (counters)
+        *counters = cnt;
+      return;
+    }
+    const PropagationFlags &pf = ti.prop_config().backward_fit_pflags;
+    PropagationFlags pf_nomat = pf;
+    pf_nomat.apply_material = false;
+    auto hit_of = [&](const SeedHits &l, int k) -> const Hit & { return (*src[l.lyr[k]].hits)[l.idx[k]]; };
+
+    for (int b0 = 0; b0 < (int)seeds.size(); b0 += NN) {
+      const int N = std::min(NN, (int)seeds.size() - b0);
+      SeedHits L[NN];
+      int nmax = 0;
+      for (int i = 0; i < N; ++i) {
+        const Track &t = seeds[b0 + i];
+        L[i].n = 0;
+        for (int k = 0; k < t.nTotalHits() && L[i].n < kMaxSeedHits; ++k) {
+          const HitOnTrack hot = t.getHitOnTrack(k);
+          if (hot.index < 0 || hot.layer < 0)
+            continue;
+          L[i].lyr[L[i].n] = hot.layer, L[i].idx[L[i].n] = hot.index, ++L[i].n;
+        }
+        nmax = std::max(nmax, L[i].n);
+      }
+      // lanes beyond N and seeds with fewer than two hits repeat the first usable lane
+      int i_good = 0;
+      while (i_good < N && L[i_good].n < 2)
+        ++i_good;
+      if (i_good == N)
+        continue;
+      int lane_of[NN];
+      MPlexLS err_in, err_out;
+      MPlexLV par_in, par_out;
+      MPlexQI chg, chg_prev, fail;
+      MPlexQF chi2_k;
+      MPlexHS msErr;
+      MPlexHV msPar, plNrm, plDir, plPnt;
+      for (int i = 0; i < NN; ++i) {
+        const int j = (i < N && L[i].n >= 2) ? i : i_good;
+        lane_of[i] = j;
+        TrackState ts = seeds[b0 + j].state();
+        ts.errors *= fit.bl_err_rescale;
+        err_in.copyIn(i, ts.errors.Array());
+        par_in.copyIn(i, ts.parameters.Array());
+        chg(i, 0, 0) = ts.charge;
+      }
+      int failed[NN] = {0};
+      // the inward fit: step s updates with hit n - 1 - s, the last hit first
+      for (int s = 0; s < nmax; ++s) {
+        bool active[NN];
+        for (int i = 0; i < NN; ++i) {
+          const SeedHits &l = L[lane_of[i]];
+          active[i] = i < N && L[i].n >= 2 && s < l.n;
+          const int k = std::max(l.n - 1 - s, 0);
+          const Hit &h = hit_of(l, k);
+          const ModuleInfo &mi = ti[l.lyr[k]].module_info(h.detIDinLayer());
+          msErr.copyIn(i, h.errArray());
+          msPar.copyIn(i, h.posArray());
+          plNrm.copyIn(i, mi.zdir.Array());
+          plDir.copyIn(i, mi.xdir.Array());
+          plPnt.copyIn(i, mi.pos.Array());
+        }
+        fail.setVal(0);
+        chg_prev = chg;
+        kalmanPropagateAndUpdateAndChi2Plane(
+            err_in, par_in, chg, msErr, msPar, plNrm, plDir, plPnt, err_out, par_out, fail, chi2_k, NN, pf, true);
+        for (int i = 0; i < N; ++i) {
+          if (active[i]) {
+            bool bad = fail(i, 0, 0) != 0;
+            for (int d = 0; d < 6; ++d)
+              bad |= !isFinite(par_out(i, d, 0)) || !isFinite(err_out(i, d, d));
+            failed[i] |= bad;
+          } else {
+            // a seed past its first hit keeps its state
+            float e[21], p[6];
+            err_in.copyOut(i, e);
+            par_in.copyOut(i, p);
+            err_out.copyIn(i, e);
+            par_out.copyIn(i, p);
+            chg(i, 0, 0) = chg_prev(i, 0, 0);
+          }
+        }
+        err_in = err_out;
+        par_in = par_out;
+      }
+      // the state at the first hit onto the last hit's module plane, without material
+      for (int i = 0; i < NN; ++i) {
+        const SeedHits &l = L[lane_of[i]];
+        const Hit &h = hit_of(l, l.n - 1);
+        const ModuleInfo &mi = ti[l.lyr[l.n - 1]].module_info(h.detIDinLayer());
+        plNrm.copyIn(i, mi.zdir.Array());
+        plPnt.copyIn(i, mi.pos.Array());
+      }
+      fail.setVal(0);
+      propagateHelixToPlaneMPlex(err_in, par_in, chg, plPnt, plNrm, err_out, par_out, fail, NN, pf_nomat);
+      for (int i = 0; i < N; ++i) {
+        if (L[i].n < 2)
+          continue;
+        bool bad = failed[i] || fail(i, 0, 0) != 0;
+        for (int d = 0; d < 6; ++d)
+          bad |= !isFinite(par_out(i, d, 0)) || !isFinite(err_out(i, d, d)) || (d >= 3 && !(err_out(i, d, d) > 0.f));
+        if (bad) {
+          ++cnt.n_fail;
+          continue;
+        }
+        TrackState ts;
+        err_out.copyOut(i, ts.errors.Array());
+        par_out.copyOut(i, ts.parameters.Array());
+        ts.charge = chg(i, 0, 0);
+        seeds[b0 + i].setState(ts);
       }
     }
     if (counters)

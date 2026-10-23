@@ -84,16 +84,3 @@ def _modifyForNGTScouting(trackvalidator):
 def _modifyForNGTScoutingLST(trackvalidator):
     trackvalidator.label = ["hltGeneralTracks", "hltPhase2PixelTracks", "hltInitialStepTracksT4T5TCLST", "hltPixelLessTracks", "hltWithPixelTracks"]
 (ngtScouting & trackingLST).toModify(hltTrackValidator, _modifyForNGTScoutingLST)
-
-# phase2MkSeeder: the mkFit seeder's seeds that go to LST, as tracks, next to Patatrack's pixel tracks (which still
-# run, for the pixel vertices)
-from Configuration.ProcessModifiers.phase2MkSeeder_cff import phase2MkSeeder
-hltMkFitSeederSeedTracks = cms.EDProducer("TrackFromSeedProducer",
-    src = cms.InputTag("hltMkFitSeederSeedsClassified"),
-    beamSpot = cms.InputTag("hltOnlineBeamSpot"),
-    TTRHBuilder = cms.string("hltESPTTRHBuilderWithoutRefit")
-)
-def _modifyForPhase2MkSeeder(trackvalidator):
-    trackvalidator.label.insert(trackvalidator.label.index("hltPhase2PixelTracks") + 1, "hltMkFitSeederSeedTracks")
-(phase2_tracker & phase2MkSeeder).toModify(hltTrackValidator, _modifyForPhase2MkSeeder)
-(phase2_tracker & phase2MkSeeder).toModify(hltMultiTrackValidationTask, lambda t: t.add(hltMkFitSeederSeedTracks))

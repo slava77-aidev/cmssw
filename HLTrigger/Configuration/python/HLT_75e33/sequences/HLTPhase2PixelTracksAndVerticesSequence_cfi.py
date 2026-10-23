@@ -67,3 +67,23 @@ _HLTPhase2PixelTracksAndVerticesSequenceLegacy = cms.Sequence(
     +HLTPhase2PixelVertexingSequence
 )
 hltPhase2LegacyTracking.toReplaceWith(HLTPhase2PixelTracksAndVerticesSequence, _HLTPhase2PixelTracksAndVerticesSequenceLegacy)
+
+# phase2MkSeeder: the mkFit seeder and its seed classifier replace the pixel CA; the classified seeds, as tracks
+# (hltPhase2PixelTracks), feed the pixel vertices
+from ..sequences.HLTMkFitInputSequence_cfi import *
+from ..modules.hltMkFitSeederSeedsMkFit_cfi import *
+from ..modules.hltMkFitSeederSeeds_cfi import *
+from ..modules.hltMkFitSeederSeedsClassified_cfi import *
+_HLTPhase2PixelTracksAndVerticesSequenceMkSeeder = cms.Sequence(
+    HLTBeamSpotSequence
+    +hltPhase2PixelFitterByHelixProjections # Currently needed by tracker muons
+    +hltPhase2PixelTrackFilterByKinematics  # Currently needed by tracker muons
+    +HLTMkFitInputSequence
+    +hltMkFitSeederSeedsMkFit
+    +hltMkFitSeederSeeds
+    +hltMkFitSeederSeedsClassified
+    +hltPhase2PixelTracks
+    +HLTPhase2PixelVertexingSequence
+)
+from Configuration.ProcessModifiers.phase2MkSeeder_cff import phase2MkSeeder
+phase2MkSeeder.toReplaceWith(HLTPhase2PixelTracksAndVerticesSequence, _HLTPhase2PixelTracksAndVerticesSequenceMkSeeder)

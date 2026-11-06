@@ -1,0 +1,63 @@
+<!-- host plugins -->
+<library file="*.cc" name="RecoTrackerMkSeederAlpakaPlugins">
+  <use name="DataFormats/Portable"/>
+  <use name="DataFormats/TrackReco"/>
+  <use name="DataFormats/TrackerCommon"/>
+  <use name="DataFormats/TrackingRecHit"/>
+  <use name="DataFormats/TrajectorySeed"/>
+  <use name="DataFormats/TrajectoryState"/>
+  <use name="FWCore/Framework"/>
+  <use name="FWCore/MessageLogger"/>
+  <use name="FWCore/ParameterSet"/>
+  <use name="FWCore/Utilities"/>
+  <use name="Geometry/CommonTopologies"/>
+  <use name="Geometry/Records"/>
+  <use name="MagneticField/Engine"/>
+  <use name="MagneticField/Records"/>
+  <use name="RecoTracker/MkFit"/>
+  <use name="RecoTracker/MkFitCore"/>
+  <use name="RecoTracker/MkSeederAlpaka"/>
+  <use name="RecoTracker/Record"/>
+  <use name="TrackingTools/GeomPropagators"/>
+  <use name="TrackingTools/Records"/>
+  <use name="TrackingTools/TrajectoryState"/>
+  <flags EDM_PLUGIN="1"/>
+</library>
+
+<!-- alpaka-based portable plugins -->
+<library file="alpaka/*.cc" name="RecoTrackerMkSeederAlpakaPortable">
+  <use name="alpaka"/>
+  <use name="eigen"/>
+  <use name="DataFormats/BeamSpot"/>
+  <use name="DataFormats/DetId"/>
+  <use name="DataFormats/Portable"/>
+  <use name="Geometry/CommonTopologies"/>
+  <use name="Geometry/Records"/>
+  <use name="Geometry/TrackerGeometryBuilder"/>
+  <use name="MagneticField/Engine"/>
+  <use name="MagneticField/Records"/>
+  <use name="FWCore/Framework"/>
+  <use name="FWCore/MessageLogger"/>
+  <use name="FWCore/ParameterSet"/>
+  <use name="FWCore/Utilities"/>
+  <use name="HeterogeneousCore/AlpakaCore"/>
+  <use name="HeterogeneousCore/AlpakaInterface"/>
+  <use name="RecoTracker/MkFit"/>
+  <use name="RecoTracker/MkFitCore"/>
+  <use name="RecoTracker/MkSeederAlpaka"/>
+  <use name="RecoTracker/Record"/>
+  <flags ALPAKA_BACKENDS="1"/>
+  <flags EDM_PLUGIN="1"/>
+  <!-- GCC counts the locations of the tokens of every macro expansion (-ftrack-macro-expansion, default 2, which
+       the release's -ftrack-macro-expansion=0 replaces only in the production builds: the area hook
+       00-remove-track-macro-expansion drops it in a developer area). A GENERATE_SOA_LAYOUT costs about 10M locations per
+       column (MkSeederChainSoA.h 436M, MkSeederEventHitsSoA.h 374M, MkSeederSeedsSoA.h 376M, the static tables of
+       MkSeederESData.h 1140M, measured with -fmem-report), the package has ~230 columns, and the limit is 2^31: the
+       translation units that use the views of several steps (MkSeederDevice.dev.cc, MkSeederClean.dev.cc,
+       MkSeederPca.dev.cc through MkSeederDeviceTypes.h, and MkSeederProducer.cc, which builds all the steps' views
+       from the static tables and the event's collections) run out of locations (symptom: duplicate boost_concept_check
+       __LINE__ declarations). Level 1 does not track the macro arguments' expansion and fits -->
+  <flags CPPFLAGS="-ftrack-macro-expansion=1"/>
+  <!-- GCC only: the HIP host compiler (clang) does not know it -->
+  <flags REM_ROCM_HOST_CPPFLAGS="-ftrack-macro-expansion=1"/>
+</library>

@@ -83,3 +83,7 @@ _hltInitialStepTrackCandidatesLST = cms.EDProducer('LSTOutputConverter',
 
 from Configuration.ProcessModifiers.trackingLST_cff import trackingLST
 trackingLST.toReplaceWith(hltInitialStepTrackCandidates, _hltInitialStepTrackCandidatesLST)
+
+# the mkFit seeder: higher mkFit candidate pT cuts
+from Configuration.ProcessModifiers.phase2MkSeeder_cff import phase2MkSeeder
+phase2MkSeeder.toModify(hltInitialStepTrackCandidates, candMinPtCut = 0.8, candMinPtRelaxedCut = 0.7, candMinAbsEtaForRelaxedCut = 1.2)

@@ -117,3 +117,20 @@ _HLTInitialStepSequenceMkFitFit = cms.Sequence(
 
 from Configuration.ProcessModifiers.trackingMkFitFit_cff import trackingMkFitFit
 trackingMkFitFit.toReplaceWith(HLTInitialStepSequence, _HLTInitialStepSequenceMkFitFit)
+
+
+# the mkFit hit conversion, the seeder and the seed classifier run in HLTPhase2PixelTracksAndVerticesSequence (their
+# seeds feed the pixel vertices)
+_HLTInitialStepSequenceMkSeeder = cms.Sequence(
+    hltInputLST
+    +hltLST
+    +hltInitialStepTrajectorySeedsLST
+    +hltInitialStepMkFitSeeds
+    +hltInitialStepTrackCandidatesMkFit
+    +hltInitialStepTrackCandidates
+    +hltInitialStepTracks
+    +HLTInitialStepHPSelectionSequence
+)
+
+from Configuration.ProcessModifiers.phase2MkSeeder_cff import phase2MkSeeder
+phase2MkSeeder.toReplaceWith(HLTInitialStepSequence, _HLTInitialStepSequenceMkSeeder)

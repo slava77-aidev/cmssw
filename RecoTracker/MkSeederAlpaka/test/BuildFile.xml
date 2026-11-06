@@ -1,0 +1,61 @@
+<!-- validation tool of the mkFit seeder chain (hash of its products); not a production plugin -->
+<library file="MkFitSeedWrapperHasher.cc" name="RecoTrackerMkSeederAlpakaTestPlugins">
+  <use name="DataFormats/Portable"/>
+  <use name="DataFormats/TrackReco"/>
+  <use name="DataFormats/TrackingRecHit"/>
+  <use name="DataFormats/TrajectorySeed"/>
+  <use name="DataFormats/TrajectoryState"/>
+  <use name="FWCore/Framework"/>
+  <use name="FWCore/MessageLogger"/>
+  <use name="FWCore/ParameterSet"/>
+  <use name="FWCore/Utilities"/>
+  <use name="RecoTracker/MkFit"/>
+  <use name="RecoTracker/MkFitCore"/>
+  <use name="RecoTracker/MkSeederAlpaka"/>
+  <flags EDM_PLUGIN="1"/>
+</library>
+
+<!-- unit tests; the alpaka ones are built once per backend (each test binary runs on the devices of its backend) -->
+<bin name="testMkSeederRadixSort" file="alpaka/testMkSeederRadixSort.dev.cc">
+  <use name="alpaka"/>
+  <use name="catch2"/>
+  <use name="DataFormats/Portable"/>
+  <use name="DataFormats/SoATemplate"/>
+  <use name="FWCore/Utilities"/>
+  <use name="HeterogeneousCore/AlpakaInterface"/>
+  <use name="RecoTracker/MkSeederAlpaka"/>
+  <flags ALPAKA_BACKENDS="1"/>
+</bin>
+
+<bin name="testMkSeederLibm" file="alpaka/testMkSeederLibm.dev.cc">
+  <use name="alpaka"/>
+  <use name="catch2"/>
+  <use name="FWCore/Utilities"/>
+  <use name="HeterogeneousCore/AlpakaInterface"/>
+  <use name="RecoTracker/MkSeederAlpaka"/>
+  <flags ALPAKA_BACKENDS="1"/>
+</bin>
+
+<!-- the kernel headers include the SoA layouts of every step: GCC's macro-expansion location tracking runs out (see
+     plugins/BuildFile.xml) -->
+<bin name="testMkSeederHelix" file="alpaka/testMkSeederHelix.dev.cc">
+  <use name="alpaka"/>
+  <use name="catch2"/>
+  <use name="DataFormats/Portable"/>
+  <use name="DataFormats/SoATemplate"/>
+  <use name="FWCore/Utilities"/>
+  <use name="HeterogeneousCore/AlpakaInterface"/>
+  <use name="RecoTracker/MkSeederAlpaka"/>
+  <flags ALPAKA_BACKENDS="1"/>
+  <flags CPPFLAGS="-ftrack-macro-expansion=1"/>
+  <!-- GCC only: the HIP host compiler (clang) does not know it -->
+  <flags REM_ROCM_HOST_CPPFLAGS="-ftrack-macro-expansion=1"/>
+</bin>
+
+<bin name="testMkSeederConfig" file="testMkSeederConfig.cc">
+  <use name="catch2"/>
+  <use name="json"/>
+  <use name="FWCore/ParameterSet"/>
+  <use name="FWCore/Utilities"/>
+  <use name="RecoTracker/MkSeederAlpaka"/>
+</bin>

@@ -119,9 +119,6 @@ from Configuration.ProcessModifiers.trackingMkFitFit_cff import trackingMkFitFit
 trackingMkFitFit.toReplaceWith(HLTInitialStepSequence, _HLTInitialStepSequenceMkFitFit)
 
 
-from ..modules.hltMkFitSeederSeedsMkFit_cfi import *
-from ..modules.hltMkFitSeederSeeds_cfi import *
-from ..modules.hltMkFitSeederSeedsClassified_cfi import *
 # the mkFit hit conversion, the seeder and the seed classifier run in HLTPhase2PixelTracksAndVerticesSequence (their
 # seeds feed the pixel vertices)
 _HLTInitialStepSequenceMkSeeder = cms.Sequence(

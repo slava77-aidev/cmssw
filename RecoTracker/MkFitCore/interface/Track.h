@@ -593,10 +593,8 @@ namespace mkfit {
 
   typedef std::vector<Track> TrackVec;
 
-  // Per-seed quality from the seeder, indexed by seed label: the seeder labels its
-  // seeds by quad index, and a found track carries its seed's label. The defaults
-  // mean "unknown", and a seed with them is never flagged; see
-  // StdSeq::remove_flagged_seed_tracks().
+  // Per-seed quality from the mkFit seeder (RecoTracker/MkSeederAlpaka), indexed by seed label. The defaults mean
+  // "unknown".
   struct SeedQuality {
     float clean_score = -1;  // the seeder's cleaning score
     float fake_score = -1;   // the seeder's fake score

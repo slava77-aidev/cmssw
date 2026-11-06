@@ -2040,7 +2040,8 @@ upgradeWFs['HLTTrackingOnly75e33'].step2['-s'] = upgradeWFs['HLTTrackingOnly75e3
     'VALIDATION:@hltValidation', 'VALIDATION::hltMultiTrackValidation+hltMultiPVValidation'
 )
 
-# Tracking-only menu with the mkFit seeder's seeds as the initialStep (LST) pixel seeds (phase2MkSeeder)
+# Tracking-only menu with the mkFit seeder (alpaka) and its classified seeds as the initialStep (LST) pixel seeds and
+# as the pixel tracks (phase2MkSeeder)
 upgradeWFs['HLTTrackingOnly75e33MkSeeder'] = deepcopy(upgradeWFs['HLTTrackingOnly75e33'])
 upgradeWFs['HLTTrackingOnly75e33MkSeeder'].suffix = '_HLT75e33TrackingOnlyMkSeeder'
 upgradeWFs['HLTTrackingOnly75e33MkSeeder'].offset = 0.7505

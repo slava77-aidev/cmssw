@@ -68,20 +68,25 @@ _HLTPhase2PixelTracksAndVerticesSequenceLegacy = cms.Sequence(
 )
 hltPhase2LegacyTracking.toReplaceWith(HLTPhase2PixelTracksAndVerticesSequence, _HLTPhase2PixelTracksAndVerticesSequenceLegacy)
 
-# phase2MkSeeder: the mkFit seeder and its seed classifier replace the pixel CA; the classified seeds, as tracks
-# (hltPhase2PixelTracks), feed the pixel vertices
+# phase2MkSeeder: the mkFit seeder (hltMkFitSeederSeedsMkFitDevice_cfi.py) and its seed classifier
+# (hltMkFitSeederSeedsClassifiedDevice_cfi.py) replace the pixel CA; the selected seeds as TrajectorySeeds
+# (hltMkFitSeederSeedsClassified, for LST) and as tracks (hltPhase2PixelTracks, from the seeder's perigees) feed the
+# pixel vertices
 from ..sequences.HLTMkFitInputSequence_cfi import *
-from ..modules.hltMkFitSeederSeedsMkFit_cfi import *
-from ..modules.hltMkFitSeederSeeds_cfi import *
-from ..modules.hltMkFitSeederSeedsClassified_cfi import *
+from ..modules.hltMkFitSeederSeedsMkFitDevice_cfi import hltMkFitSeederSeedsMkFitDevice as _hltMkFitSeederSeedsMkFitDevice
+from ..modules.hltMkFitSeederSeedsMkFitDevice_cfi import hltMkFitSeederSeedsMkFitDeviceModifier
+from ..modules.hltMkFitSeederSeedsClassifiedDevice_cfi import hltMkFitSeederSeedsClassifiedDevice as _hltMkFitSeederSeedsClassifiedDevice
+from ..modules.hltMkFitSeederSeedsClassifiedDevice_cfi import hltMkFitSeederSeedsClassifiedDeviceModifier
+from ..modules.hltMkFitSeederSeedsClassified_cfi import hltMkFitSeederSeedsClassified as _hltMkFitSeederSeedsClassified
+from ..modules.hltMkFitSeederSeedsClassified_cfi import hltMkFitSeederSeedsClassifiedModifier
 _HLTPhase2PixelTracksAndVerticesSequenceMkSeeder = cms.Sequence(
     HLTBeamSpotSequence
     +hltPhase2PixelFitterByHelixProjections # Currently needed by tracker muons
     +hltPhase2PixelTrackFilterByKinematics  # Currently needed by tracker muons
     +HLTMkFitInputSequence
-    +hltMkFitSeederSeedsMkFit
-    +hltMkFitSeederSeeds
-    +hltMkFitSeederSeedsClassified
+    +_hltMkFitSeederSeedsMkFitDevice
+    +_hltMkFitSeederSeedsClassifiedDevice
+    +_hltMkFitSeederSeedsClassified
     +hltPhase2PixelTracks
     +HLTPhase2PixelVertexingSequence
 )
